@@ -11,7 +11,7 @@ namespace Modulo3.Controllers
 {
     [ApiController]
     [Route("/api/autores")]
-    [Authorize]
+    [Authorize(Policy = "esAdmin")]
     public class AutoresController: ControllerBase
     {
         // De esta manera puedo tener acceso al contexto en toda mi clase AutoresController
@@ -37,7 +37,6 @@ namespace Modulo3.Controllers
         }
 
         // obtenemos uno por id con sus libros:
-        [Authorize]
         [HttpGet("{id:int}", Name = "ObtenerAutor")] // api/autores/id
         public async Task<ActionResult<AutorConLibrosDTO>> Get(int id) 
         {

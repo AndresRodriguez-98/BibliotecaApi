@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace Modulo3.Datos
 {
     // aca van las config para EntityFramework
-    public class ApplicationDbContext: IdentityDbContext
+    public class ApplicationDbContext: IdentityDbContext<Usuario>
     {
         public ApplicationDbContext(DbContextOptions options): base(options)
         {

@@ -13,6 +13,6 @@ namespace Modulo3.Entidades
         public Libro? Libro { get; set; }
         public required string UsuarioId { get; set; }
         // lo hacemos nullable ya que no siempre vamos a tener la data relacionada:
-        public IdentityUser? Usuario { get; set; }
+        public Usuario? Usuario { get; set; }
     }
 }

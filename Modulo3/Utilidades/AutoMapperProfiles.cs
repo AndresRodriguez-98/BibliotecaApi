@@ -47,6 +47,8 @@ namespace Modulo3.Utilidades
             
 
             CreateMap<ComentarioPatchDTO, Comentario>().ReverseMap();
+
+            CreateMap<Usuario, UsuarioDTO>();
         }
 
         private string MapearNombreYApellidoAutor(Autor autor) => $"{autor.Nombres} {autor.Apellidos}";

@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Modulo3.Entidades;
 
 namespace Modulo3.Servicios
 {
     public interface IServicioUsuarios
     {
-        Task<IdentityUser?> ObtenerUsuario();
+        Task<Usuario?> ObtenerUsuario();
     }
 }

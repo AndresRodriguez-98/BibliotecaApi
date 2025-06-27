@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Modulo3.Datos;
 using Modulo3.DTOs;
+using Modulo3.Entidades;
 using Modulo3.Servicios;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -12,25 +16,29 @@ namespace Modulo3.Controllers
 {
     [ApiController]
     [Route("/api/usuarios")]
-    [Authorize]
     public class UsuariosController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> userManager;
+        private readonly UserManager<Usuario> userManager;
         private readonly IConfiguration configuration;
-        private readonly SignInManager<IdentityUser> signInManager;
+        private readonly SignInManager<Usuario> signInManager;
         private readonly IServicioUsuarios servicioUsuarios;
+        private readonly ApplicationDbContext context;
+        private readonly IMapper mapper;
 
-        public UsuariosController(UserManager<IdentityUser> userManager,
-            IConfiguration configuration, SignInManager<IdentityUser> signInManager,
-            IServicioUsuarios servicioUsuarios)
+        public UsuariosController(UserManager<Usuario> userManager,
+            IConfiguration configuration, SignInManager<Usuario> signInManager,
+            IServicioUsuarios servicioUsuarios, ApplicationDbContext context,
+            IMapper mapper)
         {
             this.userManager = userManager;
             this.configuration = configuration;
             this.signInManager = signInManager;
             this.servicioUsuarios = servicioUsuarios;
+            this.context = context;
+            this.mapper = mapper;
         }
 
-        [AllowAnonymous]
+
         [HttpPost("login")]
         public async Task<ActionResult<RespuestaAutenticacionDTO>> Login(CredencialesUsuarioDTO
             credencialesUsuarioDTO)
@@ -57,7 +65,35 @@ namespace Modulo3.Controllers
             }
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IEnumerable<UsuarioDTO>> Get()
+        {
+            var usuarios = await context.Users.ToListAsync();
+            // mapeamos los usuarios a DTOs:
+            var usuariosDTO = mapper.Map<IEnumerable<UsuarioDTO>>(usuarios);
+            return usuariosDTO;
+        }
+
+        [HttpPut]
+        [Authorize]
+        public async Task<ActionResult> ActualizarUsuario(ActualizarUsuarioDTO actualizarUsuarioDTO)
+        {
+            // obtenemos el usuario logueado:
+            var usuario = await servicioUsuarios.ObtenerUsuario();
+            if (usuario == null)
+            {
+                return NotFound();
+            }
+            // actualizamos los datos del usuario logueado:
+            usuario.FechaNacimiento = actualizarUsuarioDTO.FechaNacimiento;
+            // guardamos los cambios en la DB:
+            await userManager.UpdateAsync(usuario);
+            return NoContent();
+        }
+
         [HttpGet("renovar-token")]
+        [Authorize]
         public async Task<ActionResult<RespuestaAutenticacionDTO>> RenovarToken()
         {
             var usuario = await servicioUsuarios.ObtenerUsuario();
@@ -73,17 +109,46 @@ namespace Modulo3.Controllers
             return respuestaAutenticacion;
         }
 
+        [HttpPost("hacer-admin")]
+        [Authorize(Policy = "esAdmin")]
+        public async Task<ActionResult> HacerAdmin(EditarClaimDTO editarClaimDTO)
+        {
+            var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
+            if (usuario == null)
+            {
+                return NotFound();
+            }
+            // le agregamos el claim de admin al usuario:
+            await userManager.AddClaimAsync(usuario, new Claim("esAdmin", "true"));
+
+            return NoContent();
+        }
+
+        [HttpPost("remover-admin")]
+        [Authorize(Policy = "esAdmin")]
+        public async Task<ActionResult> RemoverAdmin(EditarClaimDTO editarClaimDTO)
+        {
+            var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);
+            if (usuario == null)
+            {
+                return NotFound();
+            }
+            // le agregamos el claim de admin al usuario:
+            await userManager.RemoveClaimAsync(usuario, new Claim("esAdmin", "true"));
+            return NoContent();
+        }
+
+
         private ActionResult RetornarLoginIncorrecto()
         {
             ModelState.AddModelError(string.Empty, "Login incorrecto");
             return ValidationProblem();
         }
 
-        [AllowAnonymous]
         [HttpPost("registro")]
         public async Task<ActionResult<RespuestaAutenticacionDTO>> Registrar(CredencialesUsuarioDTO credencialesUsuarioDTO)
         {
-            var usuario = new IdentityUser
+            var usuario = new Usuario
             {
                 UserName = credencialesUsuarioDTO.Email,
                 Email = credencialesUsuarioDTO.Email

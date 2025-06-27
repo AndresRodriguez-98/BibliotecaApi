@@ -10,7 +10,7 @@ namespace Modulo3.Controllers
 {
     [ApiController]
     [Route("api/autores-coleccion")]
-    [Authorize]
+    [Authorize(Policy = "esAdmin")]
     public class AutoresColeccionController : ControllerBase
     {
         private readonly ApplicationDbContext context;

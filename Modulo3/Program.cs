@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Modulo3.Datos;
+using Modulo3.Entidades;
 using Modulo3.Servicios;
 using System.Text;
 
@@ -14,6 +15,18 @@ namespace Modulo3
             var builder = WebApplication.CreateBuilder(args);
 
             // area de servicios
+
+            var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!;
+
+            builder.Services.AddCors(opciones =>
+            {
+                opciones.AddDefaultPolicy(opcionesCORS =>
+                {
+                    opcionesCORS.WithOrigins(origenesPermitidos).AllowAnyMethod().AllowAnyHeader();
+                });
+            });
+            
+
             builder.Services.AddAutoMapper(typeof(Program));
             
             builder.Services.AddControllers().AddNewtonsoftJson();
@@ -24,14 +37,14 @@ namespace Modulo3
             // servicio para el Identity (utilizamos el IdentityUser para tener el sistema de usuarios
             // le agregamos el ApplicationDbContext para que pueda conectarse a nuestra base de datos
             // y por ultimo le agregamos el proveedor de token
-            builder.Services.AddIdentityCore<IdentityUser>()
+            builder.Services.AddIdentityCore<Usuario>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             // servicio para poder registrar usuarios a traves de UserManager
-            builder.Services.AddScoped<UserManager<IdentityUser>>();
+            builder.Services.AddScoped<UserManager<Usuario>>();
             // servicio para autenticar a los usuarios a traves del SignInManager
-            builder.Services.AddScoped<SignInManager<IdentityUser>>();
+            builder.Services.AddScoped<SignInManager<Usuario>>();
             // servicio para obtener el usuarioId del claim de nuestro jwt (usamos transient ya que no necesito compartir estado):
             builder.Services.AddTransient<IServicioUsuarios, ServicioUsuarios>();
 
@@ -59,11 +72,18 @@ namespace Modulo3
                 };
             });
 
+            builder.Services.AddAuthorization(opciones =>
+            {
+                // aca configuramos que el rol de administrador va a ser el que tenga el claim "esAdmin" con valor "true"
+                opciones.AddPolicy("esAdmin", politica => politica.RequireClaim("esAdmin"));
+            });
+
 
 
             var app = builder.Build();
 
             // area de middlewares
+            app.UseCors();
 
             app.MapControllers();
 
