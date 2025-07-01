@@ -11,6 +11,7 @@ namespace Modulo3.Entidades
         public DateTime FechaPublicacion { get; set; }
         public int LibroId { get; set; }
         public Libro? Libro { get; set; }
+        public Boolean EstaBorrado { get; set; }
         public required string UsuarioId { get; set; }
         // lo hacemos nullable ya que no siempre vamos a tener la data relacionada:
         public Usuario? Usuario { get; set; }

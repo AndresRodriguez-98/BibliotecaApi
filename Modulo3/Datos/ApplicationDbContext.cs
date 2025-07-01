@@ -15,6 +15,7 @@ namespace Modulo3.Datos
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Comentario>().HasQueryFilter(b => !b.EstaBorrado);
         }
         
         // con esto creamos la tabla en la Db a partir de las props de Autor
@@ -22,5 +23,6 @@ namespace Modulo3.Datos
         public DbSet<Libro> Libros { get; set; }
         public DbSet<Comentario> Comentarios { get; set; }
         public DbSet<AutorLibro> AutoresLibros { get; set; }
+        public DbSet<Error> Errores { get; set; }
     }
 }

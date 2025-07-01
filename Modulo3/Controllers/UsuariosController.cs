@@ -111,6 +111,7 @@ namespace Modulo3.Controllers
 
         [HttpPost("hacer-admin")]
         [Authorize(Policy = "esAdmin")]
+        [AllowAnonymous]
         public async Task<ActionResult> HacerAdmin(EditarClaimDTO editarClaimDTO)
         {
             var usuario = await userManager.FindByEmailAsync(editarClaimDTO.Email);

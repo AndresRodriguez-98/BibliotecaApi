@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Modulo3.Datos;
 
@@ -11,9 +12,11 @@ using Modulo3.Datos;
 namespace Modulo3.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250630220611_AutorFoto")]
+    partial class AutorFoto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -214,9 +217,6 @@ namespace Modulo3.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("EstaBorrado")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("FechaPublicacion")
                         .HasColumnType("datetime2");
 
@@ -234,27 +234,6 @@ namespace Modulo3.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Comentarios");
-                });
-
-            modelBuilder.Entity("Modulo3.Entidades.Error", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MensajeDeError")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StrackTrace")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Errores");
                 });
 
             modelBuilder.Entity("Modulo3.Entidades.Libro", b =>

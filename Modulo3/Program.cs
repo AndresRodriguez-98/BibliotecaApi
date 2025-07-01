@@ -1,9 +1,14 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Modulo3.Datos;
 using Modulo3.Entidades;
 using Modulo3.Servicios;
+using Modulo3.Swagger;
+using Modulo3.Utilidades;
+using StackExchange.Redis;
 using System.Text;
 
 namespace Modulo3
@@ -15,6 +20,17 @@ namespace Modulo3
             var builder = WebApplication.CreateBuilder(args);
 
             // area de servicios
+
+            // asi seria un cache local, no distribuido
+            //builder.Services.AddOutputCache(opciones =>
+            //{
+            //    opciones.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(1);
+            //});
+
+            builder.Services.AddStackExchangeRedisOutputCache(opciones =>
+            {
+                opciones.Configuration = builder.Configuration.GetConnectionString("redis");
+            });
 
             var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!;
 
@@ -47,13 +63,16 @@ namespace Modulo3
             builder.Services.AddScoped<SignInManager<Usuario>>();
             // servicio para obtener el usuarioId del claim de nuestro jwt (usamos transient ya que no necesito compartir estado):
             builder.Services.AddTransient<IServicioUsuarios, ServicioUsuarios>();
-
-
+            // servicio para almacenar archivos localmente:
+            builder.Services.AddTransient<IAlmacenadorArchivos, AlmacenadorArchivosLocal>();
+            //agregando el filtro de accion como servicio (ya que lo injectamos con un ServiceFilter)
+            builder.Services.AddScoped<MiFiltroDeAccion>();
+            builder.Services.AddScoped<FiltroValidacionLibro>();
 
             // servicio para poder acceder al contexto de la aplicación desde cualquier clase:
             builder.Services.AddHttpContextAccessor();
 
-            // por ultimo tenemos que configurar la autenticación para que labure con JWT:
+            // config autenticacion:
             builder.Services.AddAuthentication().AddJwtBearer(opciones =>
             {
                 // aca hacemos que ASP no nos cambie el nombre de un claim por otro, osea si nosotros lo llamamos "email" que no lo cambie a otro
@@ -72,10 +91,43 @@ namespace Modulo3
                 };
             });
 
+            // config autorizacion:
             builder.Services.AddAuthorization(opciones =>
             {
                 // aca configuramos que el rol de administrador va a ser el que tenga el claim "esAdmin" con valor "true"
                 opciones.AddPolicy("esAdmin", politica => politica.RequireClaim("esAdmin"));
+            });
+
+            // config del swagger
+            builder.Services.AddSwaggerGen(opciones =>
+            {
+                opciones.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                {
+                    Title = "Biblioteca API",
+                    Description = "Este es un web api para trabajar con datos de autores y libros",
+                    Contact = new Microsoft.OpenApi.Models.OpenApiContact
+                    {
+                        Email = "andresrodriguezab98@gmail.com",
+                        Name = "Andrés Rodríguez",
+                        Url = new Uri("https://andres-rodriguez98.vercel.app/")
+                    },
+                    License = new Microsoft.OpenApi.Models.OpenApiLicense
+                    {
+                        Name = "MIT",
+                        Url = new Uri("https://opensource.org/license/mit")
+                    }
+                });
+
+                opciones.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header
+                });
+
+                opciones.OperationFilter<FiltroAutorizacion>();
             });
 
 
@@ -83,9 +135,41 @@ namespace Modulo3
             var app = builder.Build();
 
             // area de middlewares
+            app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
+            {
+                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                var excepcion = exceptionHandlerFeature?.Error!;
+
+                var error = new Error()
+                {
+                    MensajeDeError = excepcion.Message,
+                    StrackTrace = excepcion.StackTrace,
+                    Fecha = DateTime.UtcNow
+                };
+
+                var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
+                dbContext.Add(error);
+                await dbContext.SaveChangesAsync();
+                await Results.InternalServerError(new
+                {
+                    tipo = "error",
+                    mensaje = "Ha ocurrido un error inesperado",
+                    status = 500
+                }).ExecuteAsync(context);
+            }));
+
+            app.UseSwagger();
+            app.UseSwaggerUI();
+
+            app.UseStaticFiles();
+
             app.UseCors();
 
+            app.UseOutputCache();
+
             app.MapControllers();
+
+            Console.WriteLine("Connection string desde config: " + builder.Configuration.GetConnectionString("redis"));
 
             app.Run();
         }
