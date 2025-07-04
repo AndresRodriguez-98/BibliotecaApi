@@ -1,0 +1,29 @@
+name: Primer Workflow
+
+on:
+  workflow_dispatch: # ejecucion manual
+  push:
+    branches:
+      - master
+    paths:
+      - 'Modulo3/**'
+      - '.github/workflows/hola-mundo.yml'
+  pull_request:
+    branches:
+      - master
+
+  jobs: # conjunto de tareas a ejecutar cuando se corra este workflow
+    saludar:
+      runs-on: ubuntu-latest # este es el ambiente mas barato para ejecutar workflows (en windows es la mitad)
+      steps:
+        - name: Muestra mensaje hola mundo
+          run: echo "Hola mundo, Felipe"
+
+        - name: Checkout # esta es una tarea predefinida que nos permite tomar el codigo del repo y utilizarlo
+          uses: actions/checkout@v4.2.2
+
+        - name: Listar los archivos del repositorio para comprobar el checkout
+          run: |
+            echo "El repositorio ${{ github.repository }}" contiene los siguientes archivos: "
+            tree
+    
