@@ -1,6 +1,6 @@
 name: Primer Workflow
 
-on:
+on:  # <--- evento que dispara el workflow (obligatorio)
   workflow_dispatch: # ejecucion manual
   push:
     branches:
@@ -12,7 +12,7 @@ on:
     branches:
       - master
 
-  jobs: # conjunto de tareas a ejecutar cuando se corra este workflow
+jobs: # conjunto de tareas a ejecutar cuando se corra este workflow
     saludar:
       runs-on: ubuntu-latest # este es el ambiente mas barato para ejecutar workflows (en windows es la mitad)
       steps:
