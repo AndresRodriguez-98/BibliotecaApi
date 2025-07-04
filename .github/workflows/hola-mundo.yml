@@ -24,6 +24,6 @@ jobs: # conjunto de tareas a ejecutar cuando se corra este workflow
 
         - name: Listar los archivos del repositorio para comprobar el checkout
           run: |
-            echo "El repositorio ${{ github.repository }}" contiene los siguientes archivos: "
+            echo "El repositorio ${{ github.repository }} contiene los siguientes archivos: "
             tree
     
