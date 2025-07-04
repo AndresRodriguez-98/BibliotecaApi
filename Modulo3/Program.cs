@@ -22,15 +22,15 @@ namespace Modulo3
             // area de servicios
 
             // asi seria un cache local, no distribuido
-            //builder.Services.AddOutputCache(opciones =>
-            //{
-            //    opciones.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(1);
-            //});
-
-            builder.Services.AddStackExchangeRedisOutputCache(opciones =>
+            builder.Services.AddOutputCache(opciones =>
             {
-                opciones.Configuration = builder.Configuration.GetConnectionString("redis");
+                opciones.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(1);
             });
+
+            //builder.Services.AddStackExchangeRedisOutputCache(opciones =>
+            //{
+            //    opciones.Configuration = builder.Configuration.GetConnectionString("redis");
+            //});
 
             var origenesPermitidos = builder.Configuration.GetSection("origenesPermitidos").Get<string[]>()!;
 
@@ -134,29 +134,38 @@ namespace Modulo3
 
             var app = builder.Build();
 
-            // area de middlewares
-            app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
+            using (var scope = app.Services.CreateScope())
             {
-                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-                var excepcion = exceptionHandlerFeature?.Error!;
-
-                var error = new Error()
+                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                if (dbContext.Database.IsRelational())
                 {
-                    MensajeDeError = excepcion.Message,
-                    StrackTrace = excepcion.StackTrace,
-                    Fecha = DateTime.UtcNow
-                };
+                    dbContext.Database.Migrate();
+                }
+            }
 
-                var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
-                dbContext.Add(error);
-                await dbContext.SaveChangesAsync();
-                await Results.InternalServerError(new
+                // area de middlewares
+                app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
                 {
-                    tipo = "error",
-                    mensaje = "Ha ocurrido un error inesperado",
-                    status = 500
-                }).ExecuteAsync(context);
-            }));
+                    var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                    var excepcion = exceptionHandlerFeature?.Error!;
+
+                    var error = new Error()
+                    {
+                        MensajeDeError = excepcion.Message,
+                        StrackTrace = excepcion.StackTrace,
+                        Fecha = DateTime.UtcNow
+                    };
+
+                    var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
+                    dbContext.Add(error);
+                    await dbContext.SaveChangesAsync();
+                    await Results.InternalServerError(new
+                    {
+                        tipo = "error",
+                        mensaje = "Ha ocurrido un error inesperado",
+                        status = 500
+                    }).ExecuteAsync(context);
+                }));
 
             app.UseSwagger();
             app.UseSwaggerUI();
