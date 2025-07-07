@@ -28,5 +28,24 @@ namespace Modulo3.Servicios
 
             return await userManager.FindByEmailAsync(email);
         }
+
+        public string? ObtenerIdUsuario()
+        {
+            // BREAKPOINT PARA CORROBORAR NOMBRES DE LOS CLAIMS
+            var claims = contextAccessor.HttpContext!.User.Claims.ToList();
+            foreach (var claim in claims)
+            {
+                Console.WriteLine($"CLAIM: {claim.Type} - {claim.Value}");
+            }
+
+            var idClaim = contextAccessor.HttpContext!
+                .User.Claims.Where(x => x.Type == "usuarioId").FirstOrDefault();
+            if (idClaim is null)
+            {
+                return null;
+            }
+            var id = idClaim.Value; 
+            return id;
+        }
     }
 }

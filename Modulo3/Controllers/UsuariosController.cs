@@ -8,6 +8,7 @@ using Modulo3.Datos;
 using Modulo3.DTOs;
 using Modulo3.Entidades;
 using Modulo3.Servicios;
+using Modulo3.Utilidades;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -16,6 +17,7 @@ namespace Modulo3.Controllers
 {
     [ApiController]
     [Route("/api/usuarios")]
+    [DeshabilitarLimitarPeticiones]
     public class UsuariosController : ControllerBase
     {
         private readonly UserManager<Usuario> userManager;
@@ -24,11 +26,12 @@ namespace Modulo3.Controllers
         private readonly IServicioUsuarios servicioUsuarios;
         private readonly ApplicationDbContext context;
         private readonly IMapper mapper;
+        private readonly IServicioLlaves servicioLlaves;
 
         public UsuariosController(UserManager<Usuario> userManager,
             IConfiguration configuration, SignInManager<Usuario> signInManager,
             IServicioUsuarios servicioUsuarios, ApplicationDbContext context,
-            IMapper mapper)
+            IMapper mapper, IServicioLlaves servicioLlaves)
         {
             this.userManager = userManager;
             this.configuration = configuration;
@@ -36,8 +39,36 @@ namespace Modulo3.Controllers
             this.servicioUsuarios = servicioUsuarios;
             this.context = context;
             this.mapper = mapper;
+            this.servicioLlaves = servicioLlaves;
         }
 
+        [HttpPost("registro")]
+        public async Task<ActionResult<RespuestaAutenticacionDTO>> Registrar(
+            CredencialesUsuarioDTO credencialesUsuarioDTO)
+        {
+            var usuario = new Usuario
+            {
+                UserName = credencialesUsuarioDTO.Email,
+                Email = credencialesUsuarioDTO.Email
+            };
+
+            var resultado = await userManager.CreateAsync(usuario, credencialesUsuarioDTO.Password!);
+
+            if (resultado.Succeeded)
+            {
+                var respuestaAutenticacion = await ConstruirToken(credencialesUsuarioDTO, usuario.Id);
+                await servicioLlaves.CrearLlave(usuario.Id, TipoLlave.Gratuita);
+                return respuestaAutenticacion;
+            }
+            else
+            {
+                foreach (var error in resultado.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return ValidationProblem();
+            }
+        }
 
         [HttpPost("login")]
         public async Task<ActionResult<RespuestaAutenticacionDTO>> Login(CredencialesUsuarioDTO
@@ -57,7 +88,7 @@ namespace Modulo3.Controllers
             // si coinciden las credenciales, creo el token, sino retorno login incorrecto:
             if (resultado.Succeeded)
             {
-                return await ConstruirToken(credencialesUsuarioDTO);
+                return await ConstruirToken(credencialesUsuarioDTO, usuario.Id);
             }
             else
             {
@@ -104,7 +135,7 @@ namespace Modulo3.Controllers
 
             var credencialesUsuarioDTO = new CredencialesUsuarioDTO { Email = usuario.Email! };
 
-            var respuestaAutenticacion = await ConstruirToken(credencialesUsuarioDTO);
+            var respuestaAutenticacion = await ConstruirToken(credencialesUsuarioDTO, usuario.Id);
 
             return respuestaAutenticacion;
         }
@@ -146,38 +177,15 @@ namespace Modulo3.Controllers
             return ValidationProblem();
         }
 
-        [HttpPost("registro")]
-        public async Task<ActionResult<RespuestaAutenticacionDTO>> Registrar(CredencialesUsuarioDTO credencialesUsuarioDTO)
-        {
-            var usuario = new Usuario
-            {
-                UserName = credencialesUsuarioDTO.Email,
-                Email = credencialesUsuarioDTO.Email
-            };
-
-            var resultado = await userManager.CreateAsync(usuario, credencialesUsuarioDTO.Password!);
-
-            if (resultado.Succeeded)
-            {
-                var respuestaAutenticacion = await ConstruirToken(credencialesUsuarioDTO);
-                return respuestaAutenticacion;
-            }
-            else
-            {
-                foreach (var error in resultado.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-                return ValidationProblem();
-            }
-        }
-        private async Task<RespuestaAutenticacionDTO> ConstruirToken(CredencialesUsuarioDTO credencialesUsuarioDTO)
+        private async Task<RespuestaAutenticacionDTO> ConstruirToken(
+            CredencialesUsuarioDTO credencialesUsuarioDTO, string usuarioId)
         {
             // lo primero que quiero es crear los Claims:
             var claims = new List<Claim>
             {
                 new Claim("email", credencialesUsuarioDTO.Email),
-                new Claim("clave", "valor")
+                new Claim("clave", "valor"),
+                new Claim("usuarioId", usuarioId)
             };
 
             // Despues queremos ir a buscar el usuario a la DB, y agarrar los claims que tenga:

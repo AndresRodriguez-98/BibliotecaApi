@@ -8,6 +8,8 @@ namespace Modulo3.Utilidades
     {
         public AutoMapperProfiles()
         {
+            CreateMap<LlaveAPI, LlaveDTO>();
+
             CreateMap<Autor, AutorDTO>()
                 .ForMember(dto => dto.NombreCompleto,
                     config => config.MapFrom(autor => MapearNombreYApellidoAutor(autor)));

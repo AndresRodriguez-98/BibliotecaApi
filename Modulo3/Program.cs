@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Modulo3.Datos;
+using Modulo3.DTOs;
 using Modulo3.Entidades;
+using Modulo3.Middlewares;
 using Modulo3.Servicios;
 using Modulo3.Swagger;
 using Modulo3.Utilidades;
@@ -69,6 +71,8 @@ namespace Modulo3
             builder.Services.AddScoped<MiFiltroDeAccion>();
             builder.Services.AddScoped<FiltroValidacionLibro>();
 
+            builder.Services.AddScoped<IServicioLlaves, ServicioLlaves>();
+           
             // servicio para poder acceder al contexto de la aplicación desde cualquier clase:
             builder.Services.AddHttpContextAccessor();
 
@@ -130,7 +134,19 @@ namespace Modulo3
                 opciones.OperationFilter<FiltroAutorizacion>();
             });
 
+            //Esta configuración sirve para inyectar una sección de configuración (appsettings.json)
+            //como objeto fuertemente tipado (LimitarPeticionesDTO), validarlo y dejarlo listo para usar
+            //en los servicios.
 
+            // acá registramos al DTO como una opcion configurable y le decimos a .NET que queremos configurar
+            // un objeto de tipo LimitarPeticionesDTO con valores que vienen del appsettings.json:
+            builder.Services.AddOptions<LimitarPeticionesDTO>()
+                // acá VINCULAMOS esa opcion con una seccion especifica del appsettings:
+                .Bind(builder.Configuration.GetSection(LimitarPeticionesDTO.Seccion))
+                // validamos las anotaciones de data como range o required en el DTO:
+                .ValidateDataAnnotations()
+                // hacemos que la validacion se haga al momento de iniciar la app
+                .ValidateOnStart();
 
             var app = builder.Build();
 
@@ -173,6 +189,8 @@ namespace Modulo3
             app.UseStaticFiles();
 
             app.UseCors();
+
+            app.UseLimitarPeticiones();
 
             app.UseOutputCache();
 
