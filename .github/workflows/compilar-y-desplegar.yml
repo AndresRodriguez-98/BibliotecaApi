@@ -11,7 +11,10 @@ on:
 
 env:
   VERSION_DOTNET: '9'
+  AZURE_APP_SERVICE_NOMBRE: BibliotecaAPI320250703171354
+  AZURE_APP_SERVICE_PAQUETE_UBICACION: '.'
 
+# vamos a correr 2 jobs, que van a poder correr en paralelo (build and deploy)
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,8 +32,37 @@ jobs:
       - name: Obteniendo las dependencias
         run: dotnet restore
 
+      - name: Publicar el Web Api
+        run: dotnet publish $proyecto -c Release -o miapp --runtime win-x86
+
       - name: Compilar
         run: dotnet build --no-restore
 
       - name: Realizar pruebas
         run: dotnet test --no-build
+
+      - name: Crear Artefacto
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          path: ./miapp
+          name: build
+
+  deploy:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    # como los jobs corren en paralelo para que sea mas rapido, tenemos que agregar lo siguiente:
+    needs: build
+    steps:
+      - name: Obtener Artefacto
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: build
+
+      - name: Despliegue al Azure App Service
+        uses: Azure/webapps-deploy@v2.2.12
+        with:
+          app-name: ${{ env.AZURE_APP_SERVICE_NOMBRE }}
+          publish_profile: ${{ secrets.AZURE_PERFIL_PUBLICO ]}
+          package: ${{ env.AZURE_APP_SERVICE_PAQUETE_UBICACION }}
+          
