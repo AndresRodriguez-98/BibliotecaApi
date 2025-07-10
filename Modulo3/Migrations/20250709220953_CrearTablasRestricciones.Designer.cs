@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Modulo3.Datos;
 
@@ -11,9 +12,11 @@ using Modulo3.Datos;
 namespace Modulo3.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250709220953_CrearTablasRestricciones")]
+    partial class CrearTablasRestricciones
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -257,51 +260,6 @@ namespace Modulo3.Migrations
                     b.ToTable("Errores");
                 });
 
-            modelBuilder.Entity("Modulo3.Entidades.Factura", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("FechaEmision")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaLimiteDePago")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Monto")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("Pagada")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UsuarioId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("Facturas");
-                });
-
-            modelBuilder.Entity("Modulo3.Entidades.FacturaEmitida", b =>
-                {
-                    b.Property<int>("Mes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Año")
-                        .HasColumnType("int");
-
-                    b.HasKey("Mes", "Año");
-
-                    b.ToTable("FacturasEmitidas");
-                });
-
             modelBuilder.Entity("Modulo3.Entidades.Libro", b =>
                 {
                     b.Property<int>("Id")
@@ -442,9 +400,6 @@ namespace Modulo3.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<bool>("MalaPaga")
-                        .HasColumnType("bit");
-
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -574,17 +529,6 @@ namespace Modulo3.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("Modulo3.Entidades.Factura", b =>
-                {
-                    b.HasOne("Modulo3.Entidades.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("Modulo3.Entidades.LlaveAPI", b =>
                 {
                     b.HasOne("Modulo3.Entidades.Usuario", "Usuario")
@@ -610,7 +554,7 @@ namespace Modulo3.Migrations
             modelBuilder.Entity("Modulo3.Entidades.RestriccionDominio", b =>
                 {
                     b.HasOne("Modulo3.Entidades.LlaveAPI", "Llave")
-                        .WithMany("RestriccionesDominio")
+                        .WithMany()
                         .HasForeignKey("LlaveId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -621,7 +565,7 @@ namespace Modulo3.Migrations
             modelBuilder.Entity("Modulo3.Entidades.RestriccionIP", b =>
                 {
                     b.HasOne("Modulo3.Entidades.LlaveAPI", "Llave")
-                        .WithMany("RestriccionesIP")
+                        .WithMany()
                         .HasForeignKey("LlaveId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -639,13 +583,6 @@ namespace Modulo3.Migrations
                     b.Navigation("Autores");
 
                     b.Navigation("Comentarios");
-                });
-
-            modelBuilder.Entity("Modulo3.Entidades.LlaveAPI", b =>
-                {
-                    b.Navigation("RestriccionesDominio");
-
-                    b.Navigation("RestriccionesIP");
                 });
 #pragma warning restore 612, 618
         }

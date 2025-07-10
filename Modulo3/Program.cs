@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Modulo3.Datos;
 using Modulo3.DTOs;
 using Modulo3.Entidades;
+using Modulo3.Jobs;
 using Modulo3.Middlewares;
 using Modulo3.Servicios;
 using Modulo3.Swagger;
@@ -70,6 +71,8 @@ namespace Modulo3
             //agregando el filtro de accion como servicio (ya que lo injectamos con un ServiceFilter)
             builder.Services.AddScoped<MiFiltroDeAccion>();
             builder.Services.AddScoped<FiltroValidacionLibro>();
+
+            builder.Services.AddHostedService<FacturasBackgroundService>();
 
             builder.Services.AddScoped<IServicioLlaves, ServicioLlaves>();
            

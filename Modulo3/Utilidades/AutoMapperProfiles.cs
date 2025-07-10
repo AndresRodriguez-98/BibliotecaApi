@@ -9,6 +9,7 @@ namespace Modulo3.Utilidades
         public AutoMapperProfiles()
         {
             CreateMap<LlaveAPI, LlaveDTO>();
+            CreateMap<RestriccionDominio, RestriccionDominioDTO>();
 
             CreateMap<Autor, AutorDTO>()
                 .ForMember(dto => dto.NombreCompleto,
